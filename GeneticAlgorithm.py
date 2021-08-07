@@ -75,8 +75,14 @@ class GeneticAlgorithm:
     def judge_solution(self, solution):
         good = [s[0] for s in solution]
         bad = [s[1] for s in solution]
-        good_temp = [g for g in good if g not in good]
-        bad_temp = [b for b in bad if b not in bad]
+        good_temp = []
+        for g in good:
+            if g not in good_temp:
+                good_temp.append(g)
+        bad_temp = []
+        for b in bad:
+            if b not in bad_temp:
+                bad_temp.append(b)
         if len(good) != len(good_temp) or len(bad) != len(bad_temp):
             return False
         else:
@@ -88,42 +94,92 @@ class GeneticAlgorithm:
         self.solutions = [x for _,x,_ in sorted(zip(distances,self.solutions,self.remains),reverse=True)]
         self.remains = [x for _,_,x in sorted(zip(distances,self.solutions,self.remains),reverse=True)]
         distances = [x for x,_,_ in sorted(zip(distances,self.solutions, self.remains),reverse=True)]
-        print(self.iter, 1/max(distances))
+        print(self.iter, 1/max(distances), (self.rounds-self.iter)/self.rounds)
+
         self.show_result(self.solutions[0])
+
         probability = [d/sum(distances) for d in distances]
         probability = [np.sum(probability[:i+1]) for i in range(len(probability))]
         next = copy.deepcopy(self.solutions[:int(self.number*0.3)])
+
         while len(next) < self.number:
             remain = []
+
             p = np.random.uniform()
             i = np.where(np.array(probability)>p)[0][0]
             f = self.solutions[i]
             remain = self.remains[i]
+
             p = np.random.uniform()
             i = np.where(np.array(probability)>p)[0][0]
             m = self.solutions[i]
             remain.extend([r for r in self.remains[i] if r not in remain])
-            m = self.solutions[np.where(np.array(probability)>p)[0][0]]
+
             cross_index = np.random.randint(2,size=(len(self.solutions[0])))
+
             c1 = copy.deepcopy(f)
+
             c2 = copy.deepcopy(m)
-            for i in range(len(cross_index)):
-                if cross_index[i]:
-                    c1[i] = m[i]
-                    c2[i] = f[i]
+
+            if len(self.good) >= len(self.bad):
+                c1_g = [c[0] for c in c1]
+                c1_t = [c1_g[i] for i in range(len(cross_index)) if cross_index[i]== 1]
+
+                c2_g = [c[0] for c in c2]
+                c2_t = [c2_g[i] for i in range(len(cross_index)) if cross_index[i]== 1]
+
+                for t in c1_t:
+                    i = c1_g.index(t)
+                    if t in c2_g:
+                        j = c2_g.index(t)
+                        temp = c1[i]
+                        c1[i] = c1[j]
+                        c1[j] = temp
+
+                for t in c2_t:
+                    i = c2_g.index(t)
+                    if t in c1_g:
+                        j = c1_g.index(t)
+                        temp = c2[i]
+                        c2[i] = c2[j]
+                        c2[j] = temp
+            else:
+                c1_b = [c[1] for c in c1]
+                c1_t = [c1_b[i] for i in range(len(cross_index)) if cross_index[i]== 1]
+
+                c2_b = [c[1] for c in c2]
+                c2_t = [c2_b[i] for i in range(len(cross_index)) if cross_index[i]== 1]
+
+                for t in c1_t:
+                    i = c1_b.index(t)
+                    if t in c2_b:
+                        j = c2_b.index(t)
+                        temp = c1[i]
+                        c1[i] = c1[j]
+                        c1[j] = temp
+
+                for t in c2_t:
+                    i = c2_b.index(t)
+                    if t in c1_b:
+                        j = c1_b.index(t)
+                        temp = c2[i]
+                        c2[i] = c2[j]
+                        c2[j] = temp
+
             # next.extend([c1,c2])
-            if np.random.uniform() > (1-(self.rounds-self.iter)/self.rounds):
-                index = np.random.randint(len(self.solutions[0]),size=1)[0]
-                if len(self.good) >= len(self.bad):
-                    c1[index][0] = random.sample(remain, 1)[0]
-                else:
-                    c1[index][1] = random.sample(remain, 1)[0]
-            if np.random.uniform() > (1-(self.rounds-self.iter)/self.rounds):
-                index = np.random.randint(len(self.solutions[0]),size=1)[0]
-                if len(self.good) >= len(self.bad):
-                    c2[index][0] = random.sample(remain, 1)[0]
-                else:
-                    c2[index][1] = random.sample(remain, 1)[0]
+            if len(self.good) != len(self.bad):
+                if np.random.uniform() > (self.rounds-self.iter)/self.rounds:
+                    index = np.random.randint(len(self.solutions[0]),size=1)[0]
+                    if len(self.good) > len(self.bad):
+                        c1[index][0] = random.sample(remain, 1)[0]
+                    else:
+                        c1[index][1] = random.sample(remain, 1)[0]
+                if np.random.uniform() > (self.rounds-self.iter)/self.rounds:
+                    index = np.random.randint(len(self.solutions[0]),size=1)[0]
+                    if len(self.good) > len(self.bad):
+                        c2[index][0] = random.sample(remain, 1)[0]
+                    else:
+                        c2[index][1] = random.sample(remain, 1)[0]
             if self.judge_solution(c1):
                 if (self.total_distance(c1) > self.total_distance(f)) or (self.total_distance(c1) > self.total_distance(m)):
                     next.append(c1)
@@ -141,5 +197,6 @@ class GeneticAlgorithm:
 
 
 if __name__ == "__main__":
-    GA = GeneticAlgorithm(1000,1000)
+    # number, rounds
+    GA = GeneticAlgorithm(2000,1000)
     GA.main()
